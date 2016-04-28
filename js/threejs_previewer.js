@@ -170,11 +170,101 @@ function createForces(callback, scene_data, structures){
 	}
 }
 
-var main = function(scene_input) {
+var scene;
+var initialize_previewer = function() {
+	// set the scene size
+	var WIDTH = window.innerWidth,
+	  	HEIGHT = window.innerHeight;
 
-	
-	var json_scene = JSON.parse(scene_input);
-	console.log(json_scene)
+	// set some camera attributes
+	var VIEW_ANGLE = 45,
+	  	ASPECT = WIDTH / HEIGHT,
+	  	NEAR = 0.1,
+	  	FAR = 10000;
+
+	// create a WebGL renderer, camera, and a scene
+	var canvas = document.getElementById("protein_viewer");
+	renderer = new THREE.WebGLRenderer({ canvas: canvas });
+
+	var camera = new THREE.PerspectiveCamera( VIEW_ANGLE, WIDTH / HEIGHT, NEAR, FAR );
+	scene = new Physijs.Scene();
+	var controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+	// add the camera to the scene
+	scene.add(camera);
+	camera.position.z = 50;
+
+	// start the renderer
+	renderer.setSize(WIDTH, HEIGHT);
+	// document.body.append( renderer.domElement );
+
+	// create a point light
+	var pointLight =
+	new THREE.PointLight(0xFFFFFF);
+
+	// set its position
+	pointLight.position.x = 10;
+	pointLight.position.y = 50;
+	pointLight.position.z = 130;
+
+	// add light to the scene
+	scene.add(pointLight);
+
+	// read scene data
+	// var scene_data;
+	// readSceneData(function (parsed_scene){
+	// 	scene_data = parsed_scene;
+	// }, 'expanded_scene');
+	function render() {
+
+		requestAnimationFrame(render);
+		renderer.render(scene, camera);
+		scene.simulate();
+		controls.update()
+	};
+	render();
+}
+
+var scene_initialized=false;
+var structures=new THREE.Object3D();
+var linkers=new THREE.Object3D();
+var forces=new THREE.Object3D();
+
+var preview = function(json_scene) {
+
+    if(!scene_initialized){
+        initialize_previewer();
+        scene_initialized=true;
+    }
+	//var json_scene = JSON.parse(scene_input);
+	//console.log(json_scene)
+
+    scene.remove(structures);
+    scene.remove(linkers);
+    scene.remove(forces);
+
+	// create structures 
+	createStructures(function (allStructures){
+		structures = allStructures;
+	}, json_scene);
+
+
+	// create force lines
+	createForces(function (force_lines){
+		forces = force_lines;
+	}, json_scene, structures);
+
+	// if(structures.children.length > 0){
+	// 	console.log(structures.children[0].position)
+	// }
+	// else(structures.children)
+
+	// add the structures and forces
+	scene.add(structures);
+	scene.add(forces);
+};
+
+var animate = function() {
 
 	// set the scene size
 	var WIDTH = window.innerWidth,
@@ -215,29 +305,77 @@ var main = function(scene_input) {
 	scene.add(pointLight);
 
 	// read scene data
-	// var scene_data;
-	// readSceneData(function (parsed_scene){
-	// 	scene_data = parsed_scene;
-	// }, 'expanded_scene');
+	var scene_data;
+	readSceneData(function (parsed_scene){
+		scene_data = parsed_scene;
+	}, 'expanded_scene');
 
 	// create structures 
 	var structures;
 	var linkers;
 	createStructures(function (allStructures){
 		structures = allStructures;
-	}, json_scene);
+	}, scene_data);
 
 	// create force lines
 	var forces;
 	createForces(function (force_lines){
 		forces = force_lines;
-	}, json_scene, structures);
+	}, scene_data, structures);
 
 	// add the structures and forces
 	scene.add(structures);
 	scene.add(forces);
 
+	// count total frames
+	var frame_total = 0;
+	countFrames(function (frames){
+		frame_total += frames;
+	});
+
+	// prep animation
+	var frame_index = 0;
+	var orientation_quat = new THREE.Quaternion();
+	var running = true;		
+
 	function render() {
+
+		if (running) {
+
+			// update structures
+			updateStructures(function (updated_position, updated_orientation, structure){
+
+				// update position
+				structure.position.x = updated_position[0];
+				structure.position.y = updated_position[1];
+				structure.position.z = updated_position[2];
+
+				// set updated orientation
+				orientation_quat.set(updated_orientation[0], updated_orientation[1], updated_orientation[2], updated_orientation[3]);
+
+				// apply orientation to structure
+				structure.rotation.setFromQuaternion(orientation_quat.normalize());
+
+			}, frame_index, structures);
+
+			// update force lines
+			updateForces(function (force_line, updated_first_attachment, updated_second_attachment){
+
+				force_line.geometry.vertices[0].copy(updated_first_attachment);
+				force_line.geometry.vertices[1].copy(updated_second_attachment);
+				force_line.geometry.verticesNeedUpdate = true;
+
+			},forces, structures);
+
+			// next frame
+			frame_index += 1;
+
+			// check for end of frames
+			if (frame_index == frame_total-1){
+				running = false;
+			}
+
+		}
 
 		requestAnimationFrame(render);
 		renderer.render(scene, camera);
@@ -248,26 +386,108 @@ var main = function(scene_input) {
 	render();
 };
 
+function updateForces(callback, forces, structures){
+
+	for (var i = 0; i < forces.children.length; i++){
+
+		// retrieve relevant structures and offsets
+		s1 = forces.children[i].name[0];
+		s2 = forces.children[i].name[1];
+		n1 = forces.children[i].name[2];
+		n2 = forces.children[i].name[3];
+
+		n1_copy = n1.clone();
+		n2_copy = n2.clone();
+
+		updated_first_attachment = new THREE.Vector3();	
+		updated_second_attachment = new THREE.Vector3();
+
+		// rotate offset based on structure's current orientation	
+		n1_copy.applyEuler(structures.getObjectByName(s1).rotation)
+		n2_copy.applyEuler(structures.getObjectByName(s2).rotation)
+
+		// add rotated offset to structure's center of mass
+		updated_first_attachment.addVectors(structures.getObjectByName(s1).position, n1_copy);
+		updated_second_attachment.addVectors(structures.getObjectByName(s2).position, n2_copy);
+
+		callback(forces.children[i], updated_first_attachment, updated_second_attachment);
+	}
+}
+
+function updateStructures(callback, index, structures){
+
+    $.ajax({
+	  url: '../frames/scene-2/frame.'+index,
+	  async: false,
+	  dataType: 'json',
+	  success: function(frame_data) {
+
+	  	for (var i = 0; i < structures.children.length; i++){
+
+	  		frame_handle = frame_data.value2[0].ptr_wrapper.data.value0[i].ptr_wrapper.data
+
+		  	// retrieve position
+	    	var updated_position = frame_handle.frame.position.data
+
+			// retrieve orientation
+	    	var updated_orientation = frame_handle.frame.orientation.value0.data
+
+    		callback(updated_position, updated_orientation, structures.getObjectByName(frame_handle.name) );
+	    }
+      }
+	});
+}
+
+function countFrames(callback){
+
+	// find number of frames in frame folder
+	$.ajax({
+	    url: '../includes/count_frames.php',
+	    dataType: 'json',
+	    async: false,
+	    success: function(obj) {
+			callback(obj.result);
+	    },
+	    error: function(e){
+	    	console.log("couldn't count number of files in "+url)
+	    }
+	});
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////// 
+
+
+
+
 window.onload = initScene;
-//window.addEventListener("load", main, true);
 
 $(function() {
 
-	document.getElementById("preview_button").addEventListener("click", function(){
-		var scene_input = document.getElementById("scene_data");
+	// placeholder simulation animation
+	document.getElementById("submit_button").addEventListener("click", function(){
 
-		// pico.load('../cgi-bin/Mechanics/bin/expand_scene')
+		animate();
 
-		// pico.main = function() {
-	 //       var displayMessage = function(test){
-	 //            document.getElementById('expand_scene').innerHTML = expand_scene;
-	 //       }
-
-	 //       expand_scene.test(displayMessage);
-		// }
-
-		main(scene_input.value)
-		$('#canvas').load(document.URL +  ' #canvas');
 	}, true)
 
+	// expand and preview default scene 
+	var expanded_scene = expandScene($("#scene_data").val());
+	preview(expanded_scene);
+
+	// expand preview scene when input changes in textarea
+	$("#scene_data").on("keyup", function(){
+		try{
+			expanded_scene = expandScene($("#scene_data").val());
+			preview(expanded_scene);
+		} catch(err){
+		}
+	});
 });
+
+
+
+
+
+
+		
+
