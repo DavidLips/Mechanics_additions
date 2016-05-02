@@ -8,12 +8,12 @@
     <?php endif ?>
 
     <link rel="stylesheet" type="text/css" href="stylesheet.css" media="screen" />
-    <link rel="stylesheet" type="text/css" href="css/jquery-ui.min.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="css/jquery-ui.css" media="screen" />
 
     <script type="text/javascript" src="js/three.min.js"></script>
     <script type="text/javascript" src="js/physi.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
-    <script type="text/javascript" src="js/jquery-ui_update.js"></script>
+    <script type="text/javascript" src="js/jquery-ui.js"></script>
     <script src="http://requirejs.org/docs/release/2.1.11/minified/require.js"></script>
     <script type="text/javascript" src="js/trackball_controls.js"></script>
     <script type="text/javascript" src="js/OrbitControls.js"></script>
