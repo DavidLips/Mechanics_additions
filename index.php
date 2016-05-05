@@ -7,8 +7,8 @@
         <title>ShapeShifter</title>
     <?php endif ?>
 
-    <link rel="stylesheet" type="text/css" href="stylesheet.css" media="screen" />
-    <link rel="stylesheet" type="text/css" href="css/jquery-ui.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="css/stylesheet.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="css/jquery-ui.min.css" media="screen" />
 
     <script type="text/javascript" src="js/three.min.js"></script>
     <script type="text/javascript" src="js/physi.js"></script>
@@ -59,6 +59,10 @@
   {
    "type": "TRUST_REGION",
    "name": "evolution"
+  },
+  {"type": "ABSOLUTE_POSITION_CONSTRAINT",
+         "constraints": [
+         ]
   }
  ]
 }
@@ -67,15 +71,21 @@
   </form>
 
     
-    <div id="buttons">
+    <div id="structure buttons">
       <input type="button" id="add-custom-structure"  class="add-button" value="add custom structure" />
       <input type="button" id="add-pdb-structure"  class="add-button" value="add pdb structure" />
       <input type="button" id="add-linker"  class="add-button" value="add a linker" />
     </div>
 
+    <div id="force buttons">
+      <input type="button" id="add-absolute-position-constraint"  class="add-button" value="absolute position constraint" />
+      <input type="button" id="add-relative-position-constraint"  class="add-button" value="relative position constraint" />
+    </div>
+
     <div id="structure_accordion"></div>
     <div id="pdb_accordion"></div>
     <div id="linker_accordion"></div>
+    <div id="forces_accordion"></div>
 </div>
 
     <div id="view_container" style="height:100%;overflow:hidden;position:relative">
