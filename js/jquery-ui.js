@@ -1767,7 +1767,7 @@ var accordion = $.widget( "ui.accordion", {
 		var options = this.options;
 		this._processPanels();
 
-		console.log(this, options.active === false && options.collapsible === true )
+		//console.log(this, options.active === false && options.collapsible === true )
 
 		// was collapsed or no panel
 		if ( ( options.active === false && options.collapsible === true ) || !this.headers.length ) {

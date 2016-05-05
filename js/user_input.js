@@ -36,8 +36,10 @@ function addStructure(struct_counter){
 	var structure_indexes = [];
 
 	for (var i = 0; i < json_scene.root.length; i++){
-		if (json_scene.root[i].type == "RIGID_STRUCTURE"){
-			structure_indexes.push(parseInt(json_scene.root[i].name.slice(-1)));
+
+		if (json_scene.root[i].type == "RIGID_STRUCTURE" && json_scene.root[i].name.slice(0,5) == "struc"){
+			
+				structure_indexes.push(parseInt(json_scene.root[i].name.slice(-1)));
 		}
 	}
 
@@ -59,7 +61,6 @@ function addStructure(struct_counter){
 
 	// sort so that tabs appear in numerical order
 	structure_indexes.sort(sortNumber);
-
 
 	// add a new input box
 	var data = [];
@@ -105,7 +106,13 @@ function addStructure(struct_counter){
 	if ($("#input_container").find(".linker_input").length > 0 && $("#input_container").find(".linker-s1 option[value=structure-"+min+"]").length <= 0){ 
   		$('<option value="'+ user_generated_structure.name +'">' + user_generated_structure.name + '</option>').appendTo('.linker-s1');
   		$('<option value="'+ user_generated_structure.name +'">' + user_generated_structure.name + '</option>').appendTo('.linker-s2');
-	}	
+	}
+
+	if ($("#input_container").find(".force-input").length > 0){ 
+
+		console.log("roger")
+  		$('<option value="'+ user_generated_structure.name +'">' + user_generated_structure.name + '</option>').appendTo('.force-structure');
+	}		
 
 	// listen for removal
 	$(document).on("click", "#remove-structure-"+min, function(){ 
@@ -136,6 +143,17 @@ function findRootIndex(index, json_scene, type, pdb_name=""){
 	else if(type== "pdb"){
 		var target = pdb_name;
 	}
+	else if(type == "absolute_constraint"){
+		var target = index
+
+		for(var i = 0; i < json_scene.root[constraint_root_index].constraints.length; i++){
+			if(json_scene.root[constraint_root_index].constraints[i].force_index == target){
+				return i;
+			}
+		}
+	}
+
+	console.log("not returned")
 
 	for(var i = 0; i < json_scene.root.length; i++){
 		if (json_scene.root[i].name == target){
@@ -526,21 +544,18 @@ function registerLinkerInput(i){
 ////////////////////////////////////////
 // PDB Stuff
 
-function addPdbStructure(struct_counter){
-
-	// load current input form data
-	var json_scene = $.parseJSON($("#scene_data").val());
+function addPdbStructure(box_counter){
 
 	// retrieve all structure names
 	var pdb_indexes = [];
 
-	$('.pdb_input').each(function(i, obj) {
-    	pdb_indexes.push(parseInt($(this).attr('id').slice(-1)))
+	$('#pdb_accordion').children('div').each(function(i, obj) {
+    	pdb_indexes.push(parseInt(this.id.slice(-1)))
 	});
 
 	// find structure number 'gaps' (useful if structures have been removed)
 	var gaps = [];
-	for (var i = 1; i <= struct_counter; i++){
+	for (var i = 1; i <= box_counter; i++){
 		
 		if ($.inArray(i,pdb_indexes) == -1){
 			gaps.push(i);
@@ -548,46 +563,45 @@ function addPdbStructure(struct_counter){
 	}
 
 	// pick the lowest number 
-	min = Math.min.apply(null, gaps)
+	var new_box_number = Math.min.apply(null, gaps);
 
-	// add in front of the index array
-	pdb_indexes.unshift(min);
-
-	// sort so that tabs appear in numerical order
-	pdb_indexes.sort(sortNumber);
 
 	// add a new input box
-	var data = [];
-	for (var j = 0; j < pdb_indexes.length; j++){
+	var data = '<h3 id="h3-pdb-'+new_box_number+'">PDB structure</h3>\
+				<div class="pdb_input" id="pdb-structure-'+new_box_number+'">\
+					<div id="pdb-input-'+new_box_number+'"> \
+			    		PDB code <input type="text" id="pdb-name-'+new_box_number+'" class="pdb-name" placeholder="e.g. 1FAT"/>\
+			    		<input type="button" id="find-pdb-button-'+new_box_number+'" class="find-pdb-button" value="Find PDB"/>\
+			    	</div>\
+			    </div>'
+	
 
-		i = pdb_indexes[j];
-
-		data.push('<h3 id="h3-pdb-'+i+'">PDB structure '+i+'</h3>\
-					<div class="pdb_input" id="pdb-structure-'+i+'">\
-						<div id="pdb-input-'+min+'"> \
-				    		PDB code <input type="text" id="pdb-name-'+i+'" class="pdb-name" placeholder="e.g. 1FAT"/>\
-				    		<input type="button" id="find-pdb-button-'+i+'" class="find-pdb-button" value="Find PDB"/>\
-				    	</div>\
-				    </div>');
-	}
-
-	// update accordion (refresh function automatically opens the first accordion tab, so we're creating/destroying everything from scratch each time we add a structure)
-	if ($('#pdb_accordion').hasClass('ui-accordion')) {
-            $('#pdb_accordion').accordion('destroy');
-    }
-    $('#pdb_accordion').empty().append(data).accordion({
+    $('#pdb_accordion').append(data).accordion({
         collapsible: true,
         active: false,
         heightStyle: "content"
     });
 
+    $('#pdb_accordion').accordion("refresh");
 
     // add pdb clicked
-    $(document).on("click", "#find-pdb-button-"+min, function(){
+    $(document).one("click", "#find-pdb-button-"+new_box_number, function(){
+
+    	// load current input form data
+		var json_scene = $.parseJSON($("#scene_data").val());
 
 		var pdb_values = {};
-		var pdb_name =$("#pdb-name-"+min).val();
-		var pdb_name_number = pdb_name+"("+min+")" 
+		var pdb_name =$("#pdb-name-"+new_box_number).val();
+		var pdb_struct_counter = 1
+
+		for (var i = 0; i < json_scene.root.length; i++){
+
+			if (json_scene.root[i].type == "RIGID_STRUCTURE" && json_scene.root[i].name.slice(0,4) == pdb_name){
+				pdb_struct_counter++;
+			}
+		}
+
+		var pdb_name_number = pdb_name+"-"+pdb_struct_counter; 
 
     	$.ajax({
 		    url: "http://localhost/cgi-bin/Mechanics/bin/test_pdb_conversion.py",
@@ -599,31 +613,32 @@ function addPdbStructure(struct_counter){
 		    success: function(response){
 		    	console.log("retrieving: ", pdb_name)
 		    	pdb_values[pdb_name] = response
-		    	console.log(pdb_values)
 		    },
 		    fail: function(){
 		    	console.log('error during pdb retrieval');
 		    }
 		});
 
-    	var PdbBoxDiv = $(document.createElement('div')).attr("id", 'pdb-box-'+min);
+    	// update input box
+    	var PdbBoxDiv = $(document.createElement('div')).attr("id", 'pdb-box-'+pdb_name_number);
 
-    	$("#pdb-input-"+min).remove()
-                
-		PdbBoxDiv.after().html(pdb_name + '<br><br>position <input type="text" id="pdb-x-'+min+'" class="rs-x" placeholder="x" />&nbsp; <input type="text" id="pdb-y-'+min+'" class="rs-y" placeholder="y"/>'
-									+' &nbsp; <input type="text" id="pdb-z-'+min+'" class="rs-z" placeholder="z"/>' 
-									+'<br><br><input type="button" id="remove-pdb-'+min+'" class="remove-structure" value="remove structure"/>');
+    	$("#pdb-input-"+new_box_number).remove()
+    	$("#h3-pdb-"+new_box_number).html('<span class="ui-accordion-header-icon ui-icon ui-icon-triangle-1-s"></span>'+pdb_name +" ("+pdb_struct_counter+")");
+
+		PdbBoxDiv.after().html(pdb_name + '<br><br>position <input type="text" id="pdb-x-'+pdb_name_number+'" class="rs-x" placeholder="x" />&nbsp; <input type="text" id="pdb-y-'+pdb_name_number+'" class="rs-y" placeholder="y"/>'
+									+' &nbsp; <input type="text" id="pdb-z-'+pdb_name_number+'" class="rs-z" placeholder="z"/>' 
+									+'<br><br><input type="button" id="remove-pdb-'+pdb_name_number+'" class="remove-structure" value="remove structure"/>');
 	            
-		PdbBoxDiv.appendTo("#pdb-structure-"+min);
+		PdbBoxDiv.appendTo("#pdb-structure-"+new_box_number);
 
 		
 		 // generate a new (default) structure
 		var pdb_structure = {
 			"type": "RIGID_STRUCTURE",
-			"position": [1 + min * 3, 1 + min * 3, 1],
+			"position": [1 + pdb_struct_counter * 3, 1 + pdb_struct_counter * 3, 1],
 			"radius": pdb_values[pdb_name].radius,
 			"collision_extent": pdb_values[pdb_name].collision_extent,
-			"name": pdb_name+"("+min+")" 
+			"name": pdb_name_number
 		};
 
 		// add structure name to linker input box if it exists
@@ -633,16 +648,13 @@ function addPdbStructure(struct_counter){
 		}	
 
 		 // add pdb clicked
-    	$(document).on("click", "#remove-pdb-"+min, function(){
+    	$(document).one("click", "#remove-pdb-"+pdb_name_number, function(){
 
     		// load current input form data
 			var json_scene = $.parseJSON($("#scene_data").val());
 
 			// retrieve structure index
-			var structure_index = $(this).parent('div').attr("id").slice(-1);
-
-			console.log($(this).parent('div').attr("id"))
-
+			var structure_index = $(this).parent('div').parent('div').attr("id").slice(-1);
 
     		removePDB(structure_index,pdb_name_number, json_scene);
     	});
@@ -658,7 +670,7 @@ function addPdbStructure(struct_counter){
 		preview(expanded_scene);
 
 		 // listen for user input
-		registerPDBstructureInput(min);
+		registerPdbInput(pdb_name_number);
     });
 }
 
@@ -679,10 +691,14 @@ function removePDB(structure_index, pdb_name_number, json_scene){
 				$("#linker-s2-"+(index+1)).val() == name && ( $("#linker-s1-"+(index+1)).val() != "base" && $("#linker-s1-"+(index+1)).val() != name ) )
 			{
 				json_scene.root.splice(root_index, 1);
-				pdb_counter--;
+				pdb_box_counter--;
 
-				$("#pdb-x-"+structure_index).parent('div').remove(); 
+				$("#pdb-x-"+pdb_name_number).parent('div').parent('div').remove(); 
 				$("#pdb_accordion").children("#h3-pdb-"+structure_index).remove();
+				$("#pdb_accordion").accordion("refresh");
+
+				// remove structure option from linker boxes
+				$("option[value='"+pdb_name_number+"']").remove();
 
 				removeLinker(index+1, json_scene)			
 				
@@ -691,19 +707,16 @@ function removePDB(structure_index, pdb_name_number, json_scene){
 		});
 	}
 
-
 	if (keep_going == false){
 		return;
 	}
 
 	// remove structure from json
 	json_scene.root.splice(root_index, 1);
-	pdb_counter--;
-
-	console.log(structure_index)
+	pdb_box_counter--;
 
 	// remove input element
-	$("#pdb-x-"+structure_index).parent('div').remove(); 
+	$("#pdb-x-"+pdb_name_number).parent('div').parent('div').remove(); 
 	$("#pdb_accordion").children("#h3-pdb-"+structure_index).remove();
 	$("#pdb_accordion").accordion("refresh");
 
@@ -716,8 +729,41 @@ function removePDB(structure_index, pdb_name_number, json_scene){
 	// expand and preview
 	expanded_scene = expandScene($("#scene_data").val());
 	preview(expanded_scene);
+}
+
+
+function registerPdbInput(pdb_name_number){
+
+	$(document).on("keyup", "#pdb-x-"+pdb_name_number, function(){
+		updatePdbFromInput(pdb_name_number, 0, "x");
+    });
+    $(document).on("keyup", "#pdb-y-"+pdb_name_number, function(){
+		updatePdbFromInput(pdb_name_number,1, "y");
+    });
+    $(document).on("keyup", "#pdb-z-"+pdb_name_number, function(){
+		updatePdbFromInput(pdb_name_number,2, "z");
+    });
+}
+
+function updatePdbFromInput(pdb_name_number, pos=0, axis){
+
+	// load current input form data
+	var json_scene = $.parseJSON($("#scene_data").val());
+
+	var index = findRootIndex(0, json_scene, "pdb", pdb_name_number);
+
+	
+   	json_scene.root[index].position[pos] = parseFloat($("#pdb-"+axis+"-"+pdb_name_number).val());
+	
+	// update scene data
+	$("#scene_data").val(JSON.stringify(json_scene, null, 1));
+
+	// expand and preview
+	expanded_scene = expandScene($("#scene_data").val());
+	preview(expanded_scene);
 
 }
+
 
 
 ////////////////////////////////////
@@ -726,7 +772,9 @@ $(function() {
 
 	structure_counter = 1;
 	linker_box_counter = 1;
+	pdb_box_counter = 1;
 	pdb_counter = 1;
+	force_counter = 1;
 
 	// add structure clicked
 	$(document).on("click", "#add-custom-structure", function(){
@@ -755,9 +803,221 @@ $(function() {
     // add linker clicked
     $(document).on("click", "#add-pdb-structure", function(){
 
-    	addPdbStructure(pdb_counter);
+    	addPdbStructure(pdb_box_counter);
 
-    	pdb_counter++;
+    	pdb_box_counter++;
+    }); 
+
+    // add linker clicked
+    $(document).on("click", "#add-absolute-position-constraint", function(){
+
+    	addAbsolutePositionConstraint(force_counter);
+
+    	force_counter++;
     }); 
 });
 
+function addAbsolutePositionConstraint(force_number){
+
+	// load current input form data
+	var json_scene = $.parseJSON($("#scene_data").val());
+
+	console.log("creating force:", force_number)
+
+	// add a new input box
+	var data = '<h3 id="h3-forces-'+force_number+'">Absolute position constraint</h3>\
+				<div class="force-input-box" id="force-'+force_number+'">\
+					<div id="force-input-'+force_number+'" class="force-input"> \
+			    		Structure <select id="force-structure-'+force_number+'" class="force-structure"><option selected value="base">Select structure</option></select><br></br>\
+			    		Type <select id="force-type-'+force_number+'" class="force-type">\
+			    		<option selected value="base">Select constraint</option><option value="linear">Linear</option><option value="angular">Angular</option></select>\
+			    		<input type="button" id="remove_force-'+force_number+'" class="remove_force" value="remove constraint"/>\
+			    	</div>\
+			    </div>'
+
+
+	$('#forces_accordion').append(data).accordion({
+	collapsible: true,
+	active: false,
+	heightStyle: "content"
+	});
+
+	$('#forces_accordion').accordion("refresh");
+
+	// retrieve all structure names
+	var structure_names = [];
+
+	for (var i = 0; i < json_scene.root.length; i++){
+		if (json_scene.root[i].type == "RIGID_STRUCTURE"){
+			structure_names.push(json_scene.root[i].name);
+		}
+	}
+
+	// add structure names as options
+    for (var j = 1; j <= force_number; j++){
+		for (var field in structure_names) {
+		    $('<option value="'+ structure_names[field] +'">' +structure_names[field] + '</option>').appendTo('#force-structure-'+force_number);
+		}
+	}
+
+
+	// register change of structure and type selections
+	$(document).on("change", "#force-structure-"+force_number, function(){
+
+		var type = $("#force-type-"+force_number).val();
+		var structure = $("#force-structure-"+force_number).val();
+
+		if(type != "base" &&  structure != "base"){
+			createAbsolutePositionConstraint(force_number, structure, type)
+		}
+    });
+    $(document).on("change", "#force-type-"+force_number, function(){
+
+    	var structure = $("#force-structure-"+force_number).val();
+		var type = $("#force-type-"+force_number).val();
+
+		if(type != "base" &&  structure != "base"){
+			createAbsolutePositionConstraint(force_number, structure, type)
+		}
+    });
+}
+
+function createAbsolutePositionConstraint(force_number, structure, type){
+
+	// load current input form data
+	var json_scene = $.parseJSON($("#scene_data").val());
+
+	for(var i = 0; i < json_scene.root.length; i++){
+		if (json_scene.root[i].type == "ABSOLUTE_POSITION_CONSTRAINT"){
+			constraint_root_index = i;
+		}
+	}
+
+	if (type=="linear"){
+
+		// update input box
+    	var forceBoxDiv = $(document.createElement('div')).attr("id", 'linear-abs-constraint-box-'+force_number);
+
+    	$("#force-input-"+force_number).remove()
+
+		forceBoxDiv.after().html('Linear position constraint: '+structure+' <br><br>'
+									+'direction <input type="text" id="linear-force-x-'+force_number+'" class="rs-x" placeholder="x" />&nbsp; <input type="text" id="linear-force-y-'+force_number+'" class="rs-y" placeholder="y"/>'
+									+' &nbsp; <input type="text" id="linear-force-z-'+force_number+'" class="rs-z" placeholder="z"/>' 
+									+'     magnitude  <input type="text" id="linear-force-magnitude-'+force_number+'" class="magnitude" placeholder="0"/>'
+									+'<br><input type="button" id="remove_force-'+force_number+'" class="remove_force" value="remove constraint"/>');
+	            
+		forceBoxDiv.appendTo("#force-"+force_number);
+
+		
+		var linear_absolute_position_constraint = {
+			"type": "linear",
+			"structure": structure,
+			"direction": [0,0,0],
+			"magnitude": 0,
+			"force_index": force_number}
+
+
+		json_scene.root[constraint_root_index].constraints.push(linear_absolute_position_constraint)
+
+		// update scene data
+		$("#scene_data").val(JSON.stringify(json_scene, null, 1));
+
+		registerAbsolutePositionInput(force_number)
+
+
+	}	
+	else if(type=="angular"){
+
+		// update input box
+    	var forceBoxDiv = $(document.createElement('div')).attr("id", 'angular-abs-constraint-box-'+force_number);
+
+    	$("#force-input-"+force_number).remove()
+
+		forceBoxDiv.after().html('Angular position constraint: '+structure+' <br><br>'
+									+'axis <input type="text" id="angular-force-x-'+force_number+'" class="rs-x" placeholder="x" />&nbsp; <input type="text" id="angular-force-y-'+force_number+'" class="rs-y" placeholder="y"/>'
+									+'&nbsp; <input type="text" id="angular-force-z-'+force_number+'" class="rs-z" placeholder="z"/>' 
+									+'     angle (degrees)  <input type="text" id="angular-force-angle-'+force_number+'" class="magnitude" placeholder="0"/>'
+									+'<br><input type="button" id="remove_force-'+force_number+'" class="remove_force" value="remove constraint"/>');
+	            
+		forceBoxDiv.appendTo("#force-"+force_number);
+
+		var angular_absolute_position_constraint = {
+			"type": "angular",
+			"structure": structure,
+			"orientation": {
+				"angle": 0,
+				"axis": [0,0,0]
+			},
+			"force_index": force_number}
+
+
+		json_scene.root[constraint_root_index].constraints.push(angular_absolute_position_constraint)
+
+		// update scene data
+		$("#scene_data").val(JSON.stringify(json_scene, null, 1));
+
+		registerAbsolutePositionInput(force_number)
+
+
+
+	}
+}
+
+function registerAbsolutePositionInput(force_number){
+
+	$(document).on("keyup", "#linear-force-x-"+force_number, function(){
+		updateAbsoluteConstraintFromInput(force_number,"direction",0, "x");
+    });
+    $(document).on("keyup", "#linear-force-y-"+force_number, function(){
+		updateAbsoluteConstraintFromInput(force_number,"direction",1, "y");
+    });
+    $(document).on("keyup", "#linear-force-z-"+force_number, function(){
+		updateAbsoluteConstraintFromInput(force_number,"direction",2, "z");
+    });
+    $(document).on("keyup", "#linear-force-magnitude-"+force_number, function(){
+		updateAbsoluteConstraintFromInput(force_number,"magnitude",2, "z");
+    });
+    $(document).on("keyup", "#angular-force-x-"+force_number, function(){
+		updateAbsoluteConstraintFromInput(force_number,"axis",0, "x");
+    });
+    $(document).on("keyup", "#angular-force-y-"+force_number, function(){
+		updateAbsoluteConstraintFromInput(force_number,"axis",1, "y");
+    });
+    $(document).on("keyup", "#angular-force-z-"+force_number, function(){
+		updateAbsoluteConstraintFromInput(force_number,"axis",2, "z");
+    });
+    $(document).on("keyup", "#angular-force-angle-"+force_number, function(){
+		updateAbsoluteConstraintFromInput(force_number,"angle",2, "z");
+    });
+}
+
+function updateAbsoluteConstraintFromInput(force_number, attribute, pos, axis){
+
+
+
+// load current input form data
+	var json_scene = $.parseJSON($("#scene_data").val());
+
+	var index = findRootIndex(force_number, json_scene, "absolute_constraint");
+
+	// update position
+	// if (attribute == "position"){
+ //    	json_scene.root[index].position[pos] = parseFloat($("#rs-"+axis+"-"+structure_index).val());
+	// }
+	// else if(attribute == "radius"){
+	// 	 json_scene.root[index].radius = parseFloat($("#rs-radius-"+structure_index).val());
+	// }
+	// else if(attribute == "collision_extent"){
+	// 	json_scene.root[index].collision_extent = parseFloat($("#rs-collision-"+structure_index).val());
+	// }
+
+	// // update scene data
+	// $("#scene_data").val(JSON.stringify(json_scene, null, 1));
+
+	// // expand and preview
+	// expanded_scene = expandScene($("#scene_data").val());
+	// preview(expanded_scene);
+
+
+
+}

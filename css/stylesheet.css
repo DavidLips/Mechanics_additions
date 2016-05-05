@@ -6,9 +6,11 @@
 
 
 .structure_input,
-.linker_input {
+.linker_input,
+.force_input,
+.pdb_input{
 	display: inline-block;
-	width: 400px;
+	width: 350px;
 	height: 150px;
 	background-color: #7cadaf;
 	margin-top: 10px;
@@ -41,6 +43,9 @@
 	align: left;
 }
 
+.magnitude{
+	width: 10%;
+}
 
 .rs-radius,
 .rs-collision{
@@ -58,4 +63,8 @@
 .linker-s2,
 .pdb-name {
 	width: 25%;
+}
+
+.remove_force{
+	margin-top: 20px;
 }

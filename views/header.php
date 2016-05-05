@@ -7,7 +7,6 @@
     <?php endif ?>
     <script type="text/javascript" src="js/three.min.js"></script>
     <script type="text/javascript" src="js/physi.js"></script>
-    <script type="text/javascript" src="/pico/client.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
     <script src="http://requirejs.org/docs/release/2.1.11/minified/require.js"></script>
     <script type="text/javascript" src="js/trackball_controls.js"></script>
@@ -17,7 +16,7 @@
         Physijs.scripts.ammo = 'ammo.js';
     </script>
     <script type="text/javascript" src="js/threejs_viewer.js"></script>
-    <script type="text/javascript" src="js/threejs_previewer.js"></script>
+
 
   </head>
   <body>

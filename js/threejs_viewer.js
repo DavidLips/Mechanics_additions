@@ -95,6 +95,11 @@ function createStructures(callback, scene_data) {
 
 				// create capsule
 				var protein = new THREE.Mesh(merged, proteinMaterial);
+
+				protein.position.x = scene_data.root[i].position[0]
+				protein.position.y = scene_data.root[i].position[1]
+				protein.position.z = scene_data.root[i].position[2]
+
 				protein.name = scene_data.root[i].name
 
 				structures.add(protein);
@@ -105,6 +110,11 @@ function createStructures(callback, scene_data) {
 				var linkerMaterial = new THREE.MeshBasicMaterial( {color: 0xCCFF33, wireframe: true});
 				var linkerChainGeometry = new THREE.SphereGeometry(radius, 32, 32);
 				var linkerChain = new THREE.Mesh(linkerChainGeometry, linkerMaterial);
+
+				linkerChain.position.x = scene_data.root[i].position[0]
+				linkerChain.position.y = scene_data.root[i].position[1]
+				linkerChain.position.z = scene_data.root[i].position[2]
+
 				linkerChain.name = scene_data.root[i].name;
 				structures.add(linkerChain);
 			}	
@@ -228,7 +238,7 @@ function countFrames(callback){
 	});
 }
 
-var main = function() {
+var animate = function() {
 
 	// set the scene size
 	var WIDTH = window.innerWidth,
@@ -350,5 +360,136 @@ var main = function() {
 	render();
 };
 
+var preview = function(scene_input) {
+
+	//clear the previous scene
+	if (scene){
+		for (var obj; i < scene.length;i++){
+			scene.remove( obj );
+			renderer.deallocateObject( obj );
+		}
+	}
+
+	// set the scene size
+	var WIDTH = window.innerWidth,
+	  	HEIGHT = window.innerHeight;
+
+	// set some camera attributes
+	var VIEW_ANGLE = 45,
+	  	ASPECT = WIDTH / HEIGHT,
+	  	NEAR = 0.1,
+	  	FAR = 10000;
+
+	// create a WebGL renderer, camera, and a scene
+	var canvas = document.getElementById("protein_viewer");
+	renderer = new THREE.WebGLRenderer({ canvas: canvas });
+
+	var camera = new THREE.PerspectiveCamera( VIEW_ANGLE, WIDTH / HEIGHT, NEAR, FAR );
+	var scene = new Physijs.Scene();
+	var controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+	// add the camera to the scene
+	scene.add(camera);
+	camera.position.z = 50;
+
+	// start the renderer
+	renderer.setSize(WIDTH, HEIGHT);
+	// document.body.append( renderer.domElement );
+
+	// create a point light
+	var pointLight =
+	new THREE.PointLight(0xFFFFFF);
+
+	// set its position
+	pointLight.position.x = 10;
+	pointLight.position.y = 50;
+	pointLight.position.z = 130;
+
+	// add light to the scene
+	scene.add(pointLight);
+
+	// create structures 
+	var structures;
+	var linkers;
+	createStructures(function (allStructures){
+		structures = allStructures;
+	}, scene_input);
+
+	// create force lines
+	var forces;
+	createForces(function (force_lines){
+		forces = force_lines;
+	}, scene_input, structures);
+
+	// add the structures and forces
+	scene.add(structures);
+	scene.add(forces);
+
+	function render() {
+
+		requestAnimationFrame(render);
+		renderer.render(scene, camera);
+		scene.simulate();
+		controls.update()
+	};
+
+	render();
+};
+
 window.onload = initScene;
-window.addEventListener( 'load', main, true );
+
+$(function() {
+
+	// animate simulation
+	document.getElementById("submit_button").addEventListener("click", function(){
+
+		// // try to simulate
+		// $.ajax({
+		//     url: "http://localhost/cgi-bin/Mechanics/bin/online_simulate2.sh",
+		//     type: "post",
+		//     async: false,
+		//     dataType: "text",
+		//     data: "derp",
+		//     success: function(response){
+		//         console.log(response);
+
+		//     },
+		//     fail: function(){
+		//     	console.log('error during bashing');
+		//     }
+		// });
+
+		animate();
+		$('#canvas').load(document.URL +  ' #canvas');
+
+	}, true)
+
+	// preview simulation
+	document.getElementById("preview_button").addEventListener("click", function(){
+
+		var scene_input = document.getElementById("scene_data").value;
+
+		var expanded_scene;
+
+		// expand scene
+		$.ajax({
+		    url: "http://localhost/cgi-bin/Mechanics/bin/ajax_expand_scene.py",
+		    type: "post",
+		    async: false,
+		    contentType: "application/json",
+		    dataType: "json",
+		    data: scene_input,
+		    success: function(response){
+		        expanded_scene = response;
+
+		    },
+		    fail: function(){
+		    	console.log('error during expanding scene');
+		    }
+		});
+
+		preview(expanded_scene);
+		$('#canvas').load(document.URL +  ' #canvas');
+	}, true)
+
+});
