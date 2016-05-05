@@ -3,7 +3,7 @@ function expandScene(json_scene){
 	var expanded_scene
 
 	$.ajax({
-	    url: "http://localhost/cgi-bin/Mechanics/bin/ajax_expand_scene.py",
+	    url: "http://localhost/ajax_expand_scene.py",
 	    type: "post",
 	    async: false,
 	    contentType: "application/json",
@@ -999,6 +999,8 @@ function updateAbsoluteConstraintFromInput(force_number, attribute, pos, axis){
 	var json_scene = $.parseJSON($("#scene_data").val());
 
 	var index = findRootIndex(force_number, json_scene, "absolute_constraint");
+
+	console.log("found it!", indexx)
 
 	// update position
 	// if (attribute == "position"){
