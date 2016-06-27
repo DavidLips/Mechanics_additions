@@ -1,16 +1,5 @@
 var initScene;
 
-function readSceneData(callback, scene){
-
-	$.ajax({
-	  url: '../scenes/'+scene+'.json',
-	  async: false,
-	  dataType: 'json',
-	  success: function(scene_data) {
-	  	callback(scene_data)
-	  }
-	});
-}
 
 function createColor(i){
 
@@ -41,7 +30,7 @@ function createStructures(callback, scene_data) {
 
  			// extract radius and collision extent
 			var radius = scene_data.root[i].radius;	
-			var collision_extent = scene_data.root[i].collision_extent * 2;
+			var collision_extent = scene_data.root[i].capsule_extent;
 
 			// capsules
 			if (collision_extent > 0){
@@ -54,17 +43,22 @@ function createStructures(callback, scene_data) {
 				var proteinMaterial = new THREE.MeshBasicMaterial( { map: texture, wireframe: true } );
 			
 				// define cylinder and two spheres to create a capsule
-				var cylinder = new THREE.CylinderGeometry(radius, radius,collision_extent, 24);
-				var top = new THREE.SphereGeometry(radius,17);
-				var bottom = new THREE.SphereGeometry(radius,17);
+				var cylinder = new THREE.CylinderGeometry(radius, radius,collision_extent*2, 24);
+				var top = new THREE.SphereGeometry(radius,17,17);
+				var bottom = new THREE.SphereGeometry(radius,17,17);
+
+				var matrix = new THREE.Matrix4();
+				matrix.makeRotationX(Math.PI/2);
+            	cylinder.applyMatrix(matrix);
+
 
 				// set position of bottom and top spheres
 				var m1 = new THREE.Matrix4();
-				m1.makeTranslation(0,collision_extent/2,0);
+				m1.makeTranslation(0,0,collision_extent);
 				top.applyMatrix(m1);
 
 				var m2 = new THREE.Matrix4();
-				m2.makeTranslation(0,-collision_extent/2,0);
+				m2.makeTranslation(0,0,-collision_extent);
 				bottom.applyMatrix(m2);
 
 				// add spheres and cylinder to merged object
@@ -87,9 +81,7 @@ function createStructures(callback, scene_data) {
 					if (scene_data.root[i].orientation.axis[2] == 1){
 						m3.makeRotationZ(radians);
 					}
-
 					merged.applyMatrix(m3);
-
 				}
 
 				// create capsule
@@ -153,16 +145,11 @@ function createForces(callback, scene_data, structures){
 					second_attachment.addVectors(structures.getObjectByName(s2).position, n2);
 
 					var lineGeometry = new THREE.Geometry();
-					lineGeometry.vertices.push(
-						first_attachment,
-						second_attachment
-					);
+					lineGeometry.vertices.push(first_attachment, second_attachment);
 
 					var line = new THREE.Line(lineGeometry, material);
 					line.name = [s1,s2,n1,n2];
-
 					forces.add(line);
-
 				}
 			}
 		}
@@ -173,8 +160,10 @@ function createForces(callback, scene_data, structures){
 var scene;
 var initialize_previewer = function() {
 	// set the scene size
-	var WIDTH = window.innerWidth,
-	  	HEIGHT = window.innerHeight;
+	var WIDTH = window.innerWidth/1.74,
+	  	HEIGHT = 500;
+
+	 console.log(WIDTH)
 
 	// set some camera attributes
 	var VIEW_ANGLE = 45,
@@ -183,12 +172,12 @@ var initialize_previewer = function() {
 	  	FAR = 10000;
 
 	// create a WebGL renderer, camera, and a scene
-	var canvas = document.getElementById("protein_viewer");
+	canvas = document.getElementById("protein_viewer");
 	renderer = new THREE.WebGLRenderer({ canvas: canvas });
 
-	var camera = new THREE.PerspectiveCamera( VIEW_ANGLE, WIDTH / HEIGHT, NEAR, FAR );
-	scene = new Physijs.Scene();
-	var controls = new THREE.OrbitControls(camera, renderer.domElement);
+	camera = new THREE.PerspectiveCamera( VIEW_ANGLE, WIDTH / HEIGHT, NEAR, FAR );
+	scene = new THREE.Scene();
+	controls = new THREE.OrbitControls(camera, renderer.domElement);
 
 	// add the camera to the scene
 	scene.add(camera);
@@ -199,36 +188,28 @@ var initialize_previewer = function() {
 	// document.body.append( renderer.domElement );
 
 	// create a point light
-	var pointLight =
-	new THREE.PointLight(0xFFFFFF);
+	var pointLight = new THREE.PointLight(0xFFFFFF);
 
-	// set its position
 	pointLight.position.x = 10;
 	pointLight.position.y = 50;
 	pointLight.position.z = 130;
 
-	// add light to the scene
 	scene.add(pointLight);
 
-	// read scene data
-	// var scene_data;
-	// readSceneData(function (parsed_scene){
-	// 	scene_data = parsed_scene;
-	// }, 'expanded_scene');
 	function render() {
-
 		requestAnimationFrame(render);
 		renderer.render(scene, camera);
-		scene.simulate();
 		controls.update()
 	};
 	render();
 }
 
-var scene_initialized=false;
+scene_initialized=false;
 var structures=new THREE.Object3D();
 var linkers=new THREE.Object3D();
 var forces=new THREE.Object3D();
+
+
 
 var preview = function(json_scene) {
 
@@ -236,8 +217,6 @@ var preview = function(json_scene) {
         initialize_previewer();
         scene_initialized=true;
     }
-	//var json_scene = JSON.parse(scene_input);
-	//console.log(json_scene)
 
     scene.remove(structures);
     scene.remove(linkers);
@@ -254,221 +233,14 @@ var preview = function(json_scene) {
 		forces = force_lines;
 	}, json_scene, structures);
 
-	// if(structures.children.length > 0){
-	// 	console.log(structures.children[0].position)
-	// }
-	// else(structures.children)
-
 	// add the structures and forces
 	scene.add(structures);
 	scene.add(forces);
 };
-
-var animate = function() {
-
-	// set the scene size
-	var WIDTH = window.innerWidth,
-	  	HEIGHT = window.innerHeight;
-
-	// set some camera attributes
-	var VIEW_ANGLE = 45,
-	  	ASPECT = WIDTH / HEIGHT,
-	  	NEAR = 0.1,
-	  	FAR = 10000;
-
-	// create a WebGL renderer, camera, and a scene
-	var canvas = document.getElementById("protein_viewer");
-	renderer = new THREE.WebGLRenderer({ canvas: canvas });
-
-	var camera = new THREE.PerspectiveCamera( VIEW_ANGLE, WIDTH / HEIGHT, NEAR, FAR );
-	var scene = new Physijs.Scene();
-	var controls = new THREE.OrbitControls(camera, renderer.domElement);
-
-	// add the camera to the scene
-	scene.add(camera);
-	camera.position.z = 50;
-
-	// start the renderer
-	renderer.setSize(WIDTH, HEIGHT);
-	// document.body.append( renderer.domElement );
-
-	// create a point light
-	var pointLight =
-	new THREE.PointLight(0xFFFFFF);
-
-	// set its position
-	pointLight.position.x = 10;
-	pointLight.position.y = 50;
-	pointLight.position.z = 130;
-
-	// add light to the scene
-	scene.add(pointLight);
-
-	// read scene data
-	var scene_data;
-	readSceneData(function (parsed_scene){
-		scene_data = parsed_scene;
-	}, 'expanded_scene');
-
-	// create structures 
-	var structures;
-	var linkers;
-	createStructures(function (allStructures){
-		structures = allStructures;
-	}, scene_data);
-
-	// create force lines
-	var forces;
-	createForces(function (force_lines){
-		forces = force_lines;
-	}, scene_data, structures);
-
-	// add the structures and forces
-	scene.add(structures);
-	scene.add(forces);
-
-	// count total frames
-	var frame_total = 0;
-	countFrames(function (frames){
-		frame_total += frames;
-	});
-
-	// prep animation
-	var frame_index = 0;
-	var orientation_quat = new THREE.Quaternion();
-	var running = true;		
-
-	function render() {
-
-		if (running) {
-
-			// update structures
-			updateStructures(function (updated_position, updated_orientation, structure){
-
-				// update position
-				structure.position.x = updated_position[0];
-				structure.position.y = updated_position[1];
-				structure.position.z = updated_position[2];
-
-				// set updated orientation
-				orientation_quat.set(updated_orientation[0], updated_orientation[1], updated_orientation[2], updated_orientation[3]);
-
-				// apply orientation to structure
-				structure.rotation.setFromQuaternion(orientation_quat.normalize());
-
-			}, frame_index, structures);
-
-			// update force lines
-			updateForces(function (force_line, updated_first_attachment, updated_second_attachment){
-
-				force_line.geometry.vertices[0].copy(updated_first_attachment);
-				force_line.geometry.vertices[1].copy(updated_second_attachment);
-				force_line.geometry.verticesNeedUpdate = true;
-
-			},forces, structures);
-
-			// next frame
-			frame_index += 1;
-
-			// check for end of frames
-			if (frame_index == frame_total-1){
-				running = false;
-			}
-
-		}
-
-		requestAnimationFrame(render);
-		renderer.render(scene, camera);
-		scene.simulate();
-		controls.update()
-	};
-
-	render();
-};
-
-function updateForces(callback, forces, structures){
-
-	for (var i = 0; i < forces.children.length; i++){
-
-		// retrieve relevant structures and offsets
-		s1 = forces.children[i].name[0];
-		s2 = forces.children[i].name[1];
-		n1 = forces.children[i].name[2];
-		n2 = forces.children[i].name[3];
-
-		n1_copy = n1.clone();
-		n2_copy = n2.clone();
-
-		updated_first_attachment = new THREE.Vector3();	
-		updated_second_attachment = new THREE.Vector3();
-
-		// rotate offset based on structure's current orientation	
-		n1_copy.applyEuler(structures.getObjectByName(s1).rotation)
-		n2_copy.applyEuler(structures.getObjectByName(s2).rotation)
-
-		// add rotated offset to structure's center of mass
-		updated_first_attachment.addVectors(structures.getObjectByName(s1).position, n1_copy);
-		updated_second_attachment.addVectors(structures.getObjectByName(s2).position, n2_copy);
-
-		callback(forces.children[i], updated_first_attachment, updated_second_attachment);
-	}
-}
-
-function updateStructures(callback, index, structures){
-
-    $.ajax({
-	  url: '../frames/scene-2/frame.'+index,
-	  async: false,
-	  dataType: 'json',
-	  success: function(frame_data) {
-
-	  	for (var i = 0; i < structures.children.length; i++){
-
-	  		frame_handle = frame_data.value2[0].ptr_wrapper.data.value0[i].ptr_wrapper.data
-
-		  	// retrieve position
-	    	var updated_position = frame_handle.frame.position.data
-
-			// retrieve orientation
-	    	var updated_orientation = frame_handle.frame.orientation.value0.data
-
-    		callback(updated_position, updated_orientation, structures.getObjectByName(frame_handle.name) );
-	    }
-      }
-	});
-}
-
-function countFrames(callback){
-
-	// find number of frames in frame folder
-	$.ajax({
-	    url: '../includes/count_frames.php',
-	    dataType: 'json',
-	    async: false,
-	    success: function(obj) {
-			callback(obj.result);
-	    },
-	    error: function(e){
-	    	console.log("couldn't count number of files in "+url)
-	    }
-	});
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////// 
-
-
-
 
 window.onload = initScene;
 
 $(function() {
-
-	// placeholder simulation animation
-	document.getElementById("submit_button").addEventListener("click", function(){
-
-		animate();
-
-	}, true)
 
 	// expand and preview default scene 
 	var expanded_scene = expandScene($("#scene_data").val());
