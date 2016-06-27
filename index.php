@@ -137,7 +137,7 @@
         <form name="scene_form" id="scene_form" method="post" action="" >
         <textarea rows="30" cols="60" id="scene_data" name="scene_data">
     {
-        "output_directory": "../../../frames/minimal_analysis",
+        "output_directory": "frames/minimal_analysis",
         "dt": 0.1,
         "last_time": 10,
         "root": [

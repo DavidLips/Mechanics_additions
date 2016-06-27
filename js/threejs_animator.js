@@ -49,7 +49,7 @@ function updateForces(callback, forces, structures){
 function updateStructures(callback, index, structures, directory){
 
     $.ajax({
-	  url: 'http://localhost/cgi-bin/Mechanics/bin/'+directory+'/frame.'+index,
+	  url: 'http://localhost/'+directory+'/frame.'+index,
 	  async: false,
 	  dataType: 'json',
 	  success: function(frame_data) {

@@ -3,7 +3,7 @@
 	header('Content-Type: application/json');
 
 	$directory = $_GET["directory"];
-	$path = "../cgi-bin/Mechanics/bin/" . $directory;
+	$path = "../" . $directory;
 	
 	$frames = array();
 
