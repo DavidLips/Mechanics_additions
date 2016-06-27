@@ -65,7 +65,7 @@ function addPdbStructure(box_counter){
 		var pdb_name_number = pdb_name+"-"+pdb_struct_counter; 
 
     	$.ajax({
-		    url: "http://localhost/cgi-bin/Mechanics/bin/test_pdb_conversion.py",
+		    url: "http://localhost/cgi-bin/Mechanics/bin/pdb_conversion.py",
 		    type: "post",
 		    async: false,
 		    contentType: "application/json",

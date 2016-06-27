@@ -1,14 +1,4 @@
-function readSceneData(callback, scene){
 
-	$.ajax({
-	  url: '../scenes/'+scene+'.json',
-	  async: false,
-	  dataType: 'json',
-	  success: function(scene_data) {
-	  	callback(scene_data)
-	  }
-	});
-}
 
 function countFrames(callback, output_directory){
 
