@@ -62,14 +62,14 @@
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
       </button>
-      <a class="navbar-brand" href="#">ShapeSifter</a>
+      <a class="navbar-brand" href="#">Shapesifter</a>
     </div>
 
     <!-- Collect the nav links, forms, and other content for toggling -->
     <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
       <ul class="nav navbar-nav">
         <li class="active"><a href="#">Home <span class="sr-only">(current)</span></a></li>
-        <li><a href="https://github.com/avimosher/shapesifter/wiki">Documentation</a></li>
+        <li><a href="https://github.com/avimosher/shapesifter/wiki" target="_blank">Documentation</a></li>
         <!-- <li class="dropdown">
           <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Dropdown <span class="caret"></span></a>
           <ul class="dropdown-menu">
@@ -94,9 +94,9 @@
     <div id="header_text" style="text-align:center;">
 
         <h1>
-            <span class="dark">Shape</span><span class="light">Sifter</span>
+            <span class="dark">Shape</span><span class="light">sifter</span>
         </h1>
-        <p> Shapesifter is a simulation and visualization tool for making predictions about optimal molecular  <br> configurations and saving time in the lab. Documentation and examples available <a href="https://github.com/avimosher/shapesifter/wiki">here</a>.</p>
+        <p> Shapesifter is a simulation and visualization tool for making time-saving predictions about  <br> optimal molecular configurations. Documentation and examples available <a href="https://github.com/avimosher/shapesifter/wiki">here</a>.</p>
         <hr style="border-width:3px">
 
 
